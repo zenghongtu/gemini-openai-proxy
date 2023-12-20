@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -49,18 +52,24 @@ func ModelRetrieveHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, model)
 }
 
+func getRandomAPIKey() string {
+	apiKeys := os.Getenv("API_KEYS")
+	keys := strings.Split(apiKeys, ",")
+	rand.Seed(time.Now().UnixNano())
+	randomIndex := rand.Intn(len(keys))
+	return keys[randomIndex]
+}
+
 func ChatProxyHandler(c *gin.Context) {
-	// Retrieve the Authorization header value
-	authorizationHeader := c.GetHeader("Authorization")
 	// Declare a variable to store the OPENAI_API_KEY
-	var openaiAPIKey string
-	// Use fmt.Sscanf to extract the Bearer token
-	_, err := fmt.Sscanf(authorizationHeader, "Bearer %s", &openaiAPIKey)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	openaiAPIKey := getRandomAPIKey()
+
+	println("use api key:" + openaiAPIKey)
+
+	if openaiAPIKey == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "api not found!"})
 		return
 	}
-
 	var req openai.ChatCompletionRequest
 	// Bind the JSON data from the request to the struct
 	if err := c.ShouldBindJSON(&req); err != nil {
